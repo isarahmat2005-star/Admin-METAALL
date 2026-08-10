@@ -168,7 +168,6 @@
 <script>
   // =====================================================================
   // KONFIGURASI — ganti dengan URL Deployment Web App Google Apps Script Anda
-  // (Sama persis dengan GAS_AUTH_URL yang dipakai di aplikasi utama METAALL)
   // =====================================================================
   const GAS_AUTH_URL = "https://script.google.com/macros/s/AKfycby-Glpl6jFyhvvUAYwVw8_ML2lvhgn6SyHrntv1BVARbZOwZtmHR_SZxv4MVrMH3krGKQ/exec";
 
@@ -202,20 +201,27 @@
       showMsg('Semua kolom wajib diisi.', 'error');
       return;
     }
-    if (GAS_AUTH_URL.indexOf('GANTI_DENGAN') === 0) {
-      showMsg('GAS_AUTH_URL belum diisi di dalam kode halaman ini.', 'error');
-      return;
+    if (GAS_AUTH_URL.indexOf('AKfycby-Glpl6jFyhvvUAYwVw8_ML2lvhgn6SyHrntv1BVARbZOwZtmHR_SZxv4MVrMH3krGKQ') !== -1) {
+      // Hapus blok ini kalau URL sudah benar, atau biarkan saja
     }
 
     btn.disabled = true;
     btn.textContent = 'Menyimpan...';
 
     try {
+      // =====================================================================
+      // PERUBAHAN UTAMA DI SINI — konfigurasi fetch yang kompatibel dengan GAS
+      // =====================================================================
       const res = await fetch(GAS_AUTH_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        mode: 'cors',                    // WAJIB: izinkan cross-origin
+        redirect: 'follow',              // WAJIB: GAS sering redirect
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8'  // GANTI dari application/json
+        },
         body: JSON.stringify({ action: 'add_user', adminKey, email, maxDevice })
       });
+
       const data = await res.json();
 
       if (data.success) {
@@ -229,6 +235,7 @@
       }
     } catch (err) {
       showMsg('Koneksi gagal: ' + err.message, 'error');
+      console.error('Full error:', err);
     } finally {
       btn.disabled = false;
       btn.textContent = 'Tambahkan Pengguna';
