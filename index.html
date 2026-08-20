@@ -63,7 +63,8 @@
 
   input[type="email"],
   input[type="text"],
-  input[type="password"] {
+  input[type="password"],
+  select {
     width: 100%;
     padding: 10px 12px;
     font-size: 14px;
@@ -75,12 +76,14 @@
     background: #ffffff;
     color: #1e293b;
     transition: box-shadow 0.15s, border-color 0.15s;
+    appearance: none;
+    -webkit-appearance: none;
   }
-  input:focus {
+  input:focus, select:focus {
     border-color: #3b82f6;
     box-shadow: 0 0 0 2px rgba(59,130,246,0.35);
   }
-  input:disabled { background: #f1f5f9; color: #94a3b8; }
+  input:disabled, select:disabled { background: #f1f5f9; color: #94a3b8; }
 
   .device-row { display: flex; gap: 8px; align-items: center; }
   .device-row input[type="text"] { flex: 1; }
@@ -136,6 +139,11 @@
     <h1>Tambah Akses Pengguna</h1>
 
     <div class="field">
+      <label for="toolSelect">Tools</label>
+      <select id="toolSelect"></select>
+    </div>
+
+    <div class="field">
       <label for="adminKey">Admin Key</label>
       <input type="password" id="adminKey" placeholder="Kunci rahasia admin" autocomplete="off" />
     </div>
@@ -167,12 +175,33 @@
 
 <script>
   // =====================================================================
-  // KONFIGURASI — ganti dengan URL Deployment Web App Google Apps Script Anda
+  // KONFIGURASI TOOLS — daftar semua tools & URL Deployment GAS masing-masing.
+  // >>> TAMBAH TOOLS BARU DI SINI <<<
+  // Format: { name: "Nama Tampil", url: "URL Web App GAS" }
   // =====================================================================
-  const GAS_AUTH_URL = "https://script.google.com/macros/s/AKfycbx5pWDC7QOECHiaqlc0hHmitXfTa_YdSUcq08aqy5s37THyVpBIUovvxKwovuvotVWvsg/exec";
+  const TOOLS_CONFIG = [
+    {
+      name: "AMATI",
+      url: "https://script.google.com/macros/s/AKfycbx5pWDC7QOECHiaqlc0hHmitXfTa_YdSUcq08aqy5s37THyVpBIUovvxKwovuvotVWvsg/exec"
+    },
+    // {
+    //   name: "NAMA_TOOLS_BARU",
+    //   url: "https://script.google.com/macros/s/GANTI_DENGAN_URL_DEPLOYMENT_GAS/exec"
+    // },
+  ];
+  // =====================================================================
 
+  const toolSelect = document.getElementById('toolSelect');
   const unlimitedCheck = document.getElementById('unlimitedCheck');
   const maxDeviceInput = document.getElementById('maxDevice');
+
+  // Isi dropdown Tools dari TOOLS_CONFIG
+  TOOLS_CONFIG.forEach((tool, idx) => {
+    const opt = document.createElement('option');
+    opt.value = idx;
+    opt.textContent = tool.name;
+    toolSelect.appendChild(opt);
+  });
 
   unlimitedCheck.addEventListener('change', () => {
     if (unlimitedCheck.checked) {
@@ -193,26 +222,25 @@
 
   async function submitUser() {
     const btn = document.getElementById('submitBtn');
+    const selectedTool = TOOLS_CONFIG[toolSelect.value];
     const adminKey = document.getElementById('adminKey').value.trim();
     const email = document.getElementById('email').value.trim();
     const maxDevice = maxDeviceInput.value.trim();
 
+    if (!selectedTool) {
+      showMsg('Tools belum dipilih / belum dikonfigurasi.', 'error');
+      return;
+    }
     if (!adminKey || !email || !maxDevice) {
       showMsg('Semua kolom wajib diisi.', 'error');
       return;
-    }
-    if (GAS_AUTH_URL.indexOf('AKfycby-Glpl6jFyhvvUAYwVw8_ML2lvhgn6SyHrntv1BVARbZOwZtmHR_SZxv4MVrMH3krGKQ') !== -1) {
-      // Hapus blok ini kalau URL sudah benar, atau biarkan saja
     }
 
     btn.disabled = true;
     btn.textContent = 'Menyimpan...';
 
     try {
-      // =====================================================================
-      // PERUBAHAN UTAMA DI SINI — konfigurasi fetch yang kompatibel dengan GAS
-      // =====================================================================
-      const res = await fetch(GAS_AUTH_URL, {
+      const res = await fetch(selectedTool.url, {
         method: 'POST',
         mode: 'cors',                    // WAJIB: izinkan cross-origin
         redirect: 'follow',              // WAJIB: GAS sering redirect
@@ -225,7 +253,7 @@
       const data = await res.json();
 
       if (data.success) {
-        showMsg(data.message || 'Pengguna berhasil ditambahkan.', 'success');
+        showMsg(data.message || `Pengguna berhasil ditambahkan ke ${selectedTool.name}.`, 'success');
         document.getElementById('email').value = '';
         maxDeviceInput.value = '';
         unlimitedCheck.checked = false;
